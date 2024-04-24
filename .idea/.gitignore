@@ -1,0 +1,9 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+/.idea/
+/out/
+/target/
+/src/main/java/ci583/gui/
+/imgui.ini
+/jetbrains_mono.ttf
