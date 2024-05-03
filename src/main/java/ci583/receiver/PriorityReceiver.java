@@ -124,7 +124,7 @@ public class PriorityReceiver extends ModRegReceiver {
                     // Display work done
                     if(register.getState() != Thread.State.NEW &&
                             register.getState() != Thread.State.TERMINATED) {
-                        ImGui.text(register.workDone() + " / " + register.getWorkToDo());
+                        ImGui.text(register.workDone() + " / " + register.getTotalWorkToDo());
                     }
 
                     // Slider to configure work done amount
@@ -133,7 +133,7 @@ public class PriorityReceiver extends ModRegReceiver {
                         ImGui.separator();
                         ImGui.text("Work:");
                         ImGui.sameLine();
-                        int[] wrapper = {(int) register.getWorkToDo()};
+                        int[] wrapper = {(int) register.getTotalWorkToDo()};
                         if(ImGui.sliderInt("##work" + register.getName(), wrapper, 1000, 60000)) {
                             register.setWorkToDo(wrapper[0]);
                         }

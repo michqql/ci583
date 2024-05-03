@@ -21,11 +21,18 @@ public class Window extends Application {
     private final PriorityReceiver priorityReceiver = new PriorityReceiver(100);
     private final MultiLevelFeedbackQueueReceiver multiLevelFeedbackQueueReceiver =
             new MultiLevelFeedbackQueueReceiver(100);
+
+    private final ShortestJobFirstReceiver shortestJobFirstReceiver = new ShortestJobFirstReceiver(100);
+
+    private final FirstComeFirstServeReceiver firstComeFirstServeReceiver = new FirstComeFirstServeReceiver(100);
+
     private final LinkedHashMap<String, ModRegReceiver> selectMap = new LinkedHashMap<>(){{
         put("Round Robin", roundRobinReceiver);
         put("Priority Queue", priorityReceiver);
         put("Multi-level Feedback Queue (young & old)", multiLevelFeedbackQueueReceiver);
         //put("Multi-level Feedback Queue (implementation)", () -> {});
+        put("Shortest Job First", shortestJobFirstReceiver);
+        put("First Come First Serve", firstComeFirstServeReceiver);
     }};
 
     // The running schedulers
@@ -163,7 +170,7 @@ public class Window extends Application {
         selectedReceivers.put(r.getClass(), r);
 
         // Multi-level feedback queue (young & old)
-        r = new MultiLevelFeedbackQueueReceiver(500);
+        r = new MultiLevelFeedbackQueueReceiver(100);
         r.enqueue(new ModuleRegister("P1", 2000));
         r.enqueue(new ModuleRegister("P2", 3000));
         r.enqueue(new ModuleRegister("P3", 4000));
@@ -171,6 +178,27 @@ public class Window extends Application {
         r.enqueue(new ModuleRegister("P5", 4000));
         r.enqueue(new ModuleRegister("P6", 4000));
         selectedReceivers.put(r.getClass(), r);
+
+        // Shortest job first
+        r = new ShortestJobFirstReceiver(100);
+        r.enqueue(new ModuleRegister("P1", 2000));
+        r.enqueue(new ModuleRegister("P2", 3000));
+        r.enqueue(new ModuleRegister("P3", 4000));
+        r.enqueue(new ModuleRegister("P4", 2000));
+        r.enqueue(new ModuleRegister("P5", 4000));
+        r.enqueue(new ModuleRegister("P6", 1000));
+        selectedReceivers.put(r.getClass(), r);
+
+        // First come first serve
+        r = new FirstComeFirstServeReceiver(100);
+        r.enqueue(new ModuleRegister("P1", 2000));
+        r.enqueue(new ModuleRegister("P2", 3000));
+        r.enqueue(new ModuleRegister("P3", 4000));
+        r.enqueue(new ModuleRegister("P4", 2000));
+        r.enqueue(new ModuleRegister("P5", 4000));
+        r.enqueue(new ModuleRegister("P6", 1000));
+        selectedReceivers.put(r.getClass(), r);
+
     }
 
     private void loadLongAndEqualTests() {
@@ -197,7 +225,25 @@ public class Window extends Application {
         selectedReceivers.put(r.getClass(), r);
 
         // MLFQ
-        r = new MultiLevelFeedbackQueueReceiver(500);
+        r = new MultiLevelFeedbackQueueReceiver(100);
+        r.enqueue(new ModuleRegister("P1", 19000));
+        r.enqueue(new ModuleRegister("P2", 29000));
+        r.enqueue(new ModuleRegister("P3", 35000));
+        r.enqueue(new ModuleRegister("P4", 6000));
+        r.enqueue(new ModuleRegister("P5", 40000));
+        r.enqueue(new ModuleRegister("P6", 44000));
+        selectedReceivers.put(r.getClass(), r);
+
+        r = new ShortestJobFirstReceiver(100);
+        r.enqueue(new ModuleRegister("P1", 19000));
+        r.enqueue(new ModuleRegister("P2", 29000));
+        r.enqueue(new ModuleRegister("P3", 35000));
+        r.enqueue(new ModuleRegister("P4", 6000));
+        r.enqueue(new ModuleRegister("P5", 40000));
+        r.enqueue(new ModuleRegister("P6", 44000));
+        selectedReceivers.put(r.getClass(), r);
+
+        r = new FirstComeFirstServeReceiver(100);
         r.enqueue(new ModuleRegister("P1", 19000));
         r.enqueue(new ModuleRegister("P2", 29000));
         r.enqueue(new ModuleRegister("P3", 35000));

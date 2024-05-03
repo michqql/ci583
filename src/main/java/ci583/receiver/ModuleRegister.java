@@ -65,7 +65,15 @@ public class ModuleRegister extends Thread {
         return System.currentTimeMillis() - timeStarted;
     }
 
-    public long getWorkToDo() {
+    public long getRemainingWorkToDo() {
+        if(timeStarted > 0) {
+            return timeStarted + work - System.currentTimeMillis();
+        } else {
+            return work; // If not started, return the work amount
+        }
+    }
+
+    public long getTotalWorkToDo() {
         return work;
     }
 

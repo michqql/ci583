@@ -85,8 +85,6 @@ public class TestModRegistrations {
         }
     }
 
-
-
     @Test
     public void testPriorityReceiver() {
         ModRegReceiver r = new PriorityReceiver(100);
@@ -113,5 +111,34 @@ public class TestModRegistrations {
 
         Stream<String> names = r.startRegistration().stream().map(ModuleRegister::getName);
         assertEquals("[P1, P2, P4, P5, P6, P3]", Arrays.toString(names.toArray()));
+    }
+
+    // Extra schedulers
+    @Test
+    public void testShortestJobFirstReceiver() {
+        ModRegReceiver r = new ShortestJobFirstReceiver(100);
+        r.enqueue(new ModuleRegister("P1", 2000));
+        r.enqueue(new ModuleRegister("P2", 3000));
+        r.enqueue(new ModuleRegister("P3", 4000));
+        r.enqueue(new ModuleRegister("P4", 2000));
+        r.enqueue(new ModuleRegister("P5", 4000));
+        r.enqueue(new ModuleRegister("P6", 1000));
+
+        Stream<String> names = r.startRegistration().stream().map(ModuleRegister::getName);
+        assertEquals("[P6, P1, P4, P2, P3, P5]", Arrays.toString(names.toArray()));
+    }
+
+    @Test
+    public void testFirstComeFirstServeReceiver() {
+        ModRegReceiver r = new FirstComeFirstServeReceiver(100);
+        r.enqueue(new ModuleRegister("P1", 2000));
+        r.enqueue(new ModuleRegister("P2", 3000));
+        r.enqueue(new ModuleRegister("P3", 4000));
+        r.enqueue(new ModuleRegister("P4", 2000));
+        r.enqueue(new ModuleRegister("P5", 4000));
+        r.enqueue(new ModuleRegister("P6", 1000));
+
+        Stream<String> names = r.startRegistration().stream().map(ModuleRegister::getName);
+        assertEquals("[P1, P2, P3, P4, P5, P6]", Arrays.toString(names.toArray()));
     }
 }

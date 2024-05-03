@@ -18,7 +18,6 @@ import imgui.flag.ImGuiTableFlags;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 public class MultiLevelFeedbackQueueReceiver extends ModRegReceiver {
@@ -142,12 +141,12 @@ public class MultiLevelFeedbackQueueReceiver extends ModRegReceiver {
                     // Display work done
                     if(register.getState() != Thread.State.NEW &&
                             register.getState() != Thread.State.TERMINATED) {
-                        ImGui.text(register.workDone() + " / " + register.getWorkToDo());
+                        ImGui.text(register.workDone() + " / " + register.getTotalWorkToDo());
                     }
 
                     // Slider to configure work done amount
                     if(register.getState() == Thread.State.NEW) {
-                        int[] wrapper = {(int) register.getWorkToDo()};
+                        int[] wrapper = {(int) register.getTotalWorkToDo()};
                         if(ImGui.sliderInt("##work" + register.getName(), wrapper, 1000, 60000)) {
                             register.setWorkToDo(wrapper[0]);
                         }
@@ -194,12 +193,12 @@ public class MultiLevelFeedbackQueueReceiver extends ModRegReceiver {
                     // Display work done
                     if(register.getState() != Thread.State.NEW &&
                             register.getState() != Thread.State.TERMINATED) {
-                        ImGui.text(register.workDone() + " / " + register.getWorkToDo());
+                        ImGui.text(register.workDone() + " / " + register.getTotalWorkToDo());
                     }
 
                     // Slider to configure work done amount
                     if(register.getState() == Thread.State.NEW) {
-                        int[] wrapper = {(int) register.getWorkToDo()};
+                        int[] wrapper = {(int) register.getTotalWorkToDo()};
                         if(ImGui.sliderInt("##work" + register.getName(), wrapper, 1000, 60000)) {
                             register.setWorkToDo(wrapper[0]);
                         }
