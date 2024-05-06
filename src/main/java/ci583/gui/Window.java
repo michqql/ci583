@@ -1,19 +1,24 @@
 package ci583.gui;
 
 import ci583.receiver.*;
+import imgui.ImDrawList;
 import imgui.ImFont;
 import imgui.ImGui;
 import imgui.ImGuiIO;
-import imgui.ImGuiStyle;
 import imgui.app.Application;
 import imgui.app.Configuration;
 import imgui.flag.ImGuiCol;
-import imgui.flag.ImGuiStyleVar;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Graphical user interface to visualise the scheduling algorithms as they run.
+ * The library used for rending is neither JavaFX nor Java Swing, but instead ImGUI -
+ * which stands for Immediate Mode Graphical User Interface
+ * (<a href="https://github.com/ocornut/imgui/tree/master">ImGUI GitHub</a>).
+ */
 public class Window extends Application {
 
     private static final String WINDOW_TITLE = "Module Register";
@@ -26,6 +31,8 @@ public class Window extends Application {
     // My schedulers
     private final ShortestJobFirstReceiver shortestJobFirstReceiver = new ShortestJobFirstReceiver(100);
     private final FirstComeFirstServeReceiver firstComeFirstServeReceiver = new FirstComeFirstServeReceiver(100);
+    private final MultiLevelFeedbackQueueRealReceiver multiLevelFeedbackQueueRealReceiver =
+            new MultiLevelFeedbackQueueRealReceiver(100);
 
     // Linked hash map containing all the selectable types of schedulers
     private final LinkedHashMap<String, ModRegReceiver> selectMap = new LinkedHashMap<>(){{
@@ -35,6 +42,7 @@ public class Window extends Application {
         //put("Multi-level Feedback Queue (implementation)", () -> {});
         put("Shortest Job First", shortestJobFirstReceiver);
         put("First Come First Serve", firstComeFirstServeReceiver);
+        put("Multi-level Feedback Queue (impl.)", multiLevelFeedbackQueueRealReceiver);
     }};
 
     // The running schedulers
@@ -55,6 +63,8 @@ public class Window extends Application {
                 modRegReceiver.imGuiDraw());
 
         ImGui.popFont();
+
+        ImGui.showDemoWindow();
     }
 
     private void mainMenuBar() {
@@ -113,8 +123,6 @@ public class Window extends Application {
                 if(ImGui.sliderInt("##quantum", wrapper, 10, 1000)) {
                     ModRegReceiver.setQUANTUM(wrapper[0]);
                 }
-
-                ImGui.separator();
 
                 ImGui.endMenu();
             }

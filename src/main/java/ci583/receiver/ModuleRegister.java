@@ -1,10 +1,14 @@
 package ci583.receiver;
 
+import java.util.Random;
+
 /**
  * A class representing a process for the CI583 Modules Registration assignment. Process is a subclass of Thread.
  * When the thread runs, the 'work' that it does is to sleep repeatedly.
  */
 public class ModuleRegister extends Thread {
+
+    private static final Random RANDOM = new Random();
 
     // The amount of 'work' this process has to do, in milliseconds
     private long work;
@@ -15,6 +19,12 @@ public class ModuleRegister extends Thread {
     private long workStartTime;
     // The total amount of work in ms which has been completed
     private long workCompleted;
+
+    // Interactive thread - used for MLFQ
+    // Interactive process is a process that requires IO (such as waiting for keyboard input)
+    // and often yields the CPU waiting for certain events
+    // This variable is a percentage chance of how often this process should yield
+    private double interactiveThreadChance;
 
     /**
      * Constructs a new Process with the given name and amount of work to do.
@@ -35,6 +45,11 @@ public class ModuleRegister extends Thread {
         this.setName(pid);
         this.work = work;
         setPriority(p.getVal());
+    }
+
+    public ModuleRegister(String pid, long work, double interactiveThreadChance) {
+        this(pid, work);
+        this.interactiveThreadChance = interactiveThreadChance;
     }
 
     /**
@@ -91,6 +106,18 @@ public class ModuleRegister extends Thread {
      */
     public long getWork() {
         return work;
+    }
+
+    public double getInteractiveThreadChance() {
+        return interactiveThreadChance;
+    }
+
+    public void setInteractiveThreadChance(double interactiveThreadChance) {
+        this.interactiveThreadChance = interactiveThreadChance;
+    }
+
+    public boolean hasYieldedCPU() {
+        return RANDOM.nextDouble() <= interactiveThreadChance;
     }
 
     /**
