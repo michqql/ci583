@@ -56,21 +56,32 @@ public class RoundRobinReceiver extends ModRegReceiver {
     public List<ModuleRegister> startRegistration() {
         ArrayList<ModuleRegister> results = new ArrayList<>();
 
-        while(!queue.isEmpty()) {
-            ModuleRegister process = queue.remove(0);
+        while(!queue.isEmpty()) { // O(1) time complexity for isEmpty
+            // ArrayList#get is used here instead of remove, as otherwise the GUI
+            // cannot see the first element on the scheduler
+            ModuleRegister process = queue.get(0); // O(1) time complexity for get operation
             switch (process.getState()) {
                 case NEW -> {
                     process.start();
-                    queue.add(process);
+                    process.startWork();
                     sleepIgnoreException(QUANTUM);
+                    process.stopWork();
+
+                    queue.remove(0); // O(n) time complexity for remove - due to the shift
+                    queue.add(process); // O(1) [amortised] time complexity for add operation
+
                 }
                 case TERMINATED -> {
+                    queue.remove(0); // O(n) time complexity for remove - due to the shift
                     results.add(process);
                 }
                 default -> {
-                    process.interrupt();
-                    queue.add(process);
+                    process.startWork();
                     sleepIgnoreException(QUANTUM);
+                    process.stopWork();
+
+                    queue.remove(0); // O(n) time complexity for remove - due to the shift
+                    queue.add(process); // O(1) [amortised] time complexity for add operation
                 }
             }
         }
@@ -79,13 +90,12 @@ public class RoundRobinReceiver extends ModRegReceiver {
     }
 
     // Gui code
-    private ModuleRegister selectedRegister;
 
     @Override
     public void imGuiDraw() {
         ImGui.begin("Round Robin");
 
-        if (ImGui.beginTable("roundrobinqueue", queue.size() + 2, ImGuiTableFlags.Borders)) {
+        if (ImGui.beginTable("rr", queue.size() + 2, ImGuiTableFlags.Borders)) {
             ImGui.tableNextRow();
             ImGui.tableNextColumn();
             ImGui.text("Queue:");
@@ -95,31 +105,11 @@ public class RoundRobinReceiver extends ModRegReceiver {
                 for(ModuleRegister register : copy) {
                     ImGui.tableNextColumn();
 
-                    if(selectedRegister != null) {
-                        // Only make a button for the selected register
-                        if(selectedRegister.equals(register)) {
-                            ImGui.pushStyleColor(ImGuiCol.Button, 0.2f, 0.8f, 0.2f, 1.0f);
-                            if(ImGui.button(register.getName(), ImGui.getColumnWidth(), 0)) {
-                                selectedRegister = null;
-                            }
-                            ImGui.popStyleColor();
-                        } else {
-                            ImGui.text(register.getName());
-                        }
-                    } else {
-                        // Style the button
-                        ImGui.pushStyleColor(ImGuiCol.ButtonHovered, 1.0f, 0.0f, 0.0f, 1.0f);
+                    ImGui.text(register.getName() + " - " +
+                            (register.isExecuting() ? "Executing" : "Runnable"));
 
-                        if(ImGui.button(register.getName(), ImGui.getColumnWidth(), 0)) {
-                            selectedRegister = register;
-                        }
-                        ImGui.popStyleColor();
-                    }
-
-                    // Display work done
-                    if(register.getState() != Thread.State.NEW &&
-                            register.getState() != Thread.State.TERMINATED) {
-                        ImGui.text(register.workDone() + " / " + register.getTotalWorkToDo());
+                    if(register.getState() != Thread.State.NEW) {
+                        ImGui.text(register.getWorkCompleted() + " / " + register.getWork());
                     }
 
                     // Slider to configure work done amount
@@ -144,7 +134,5 @@ public class RoundRobinReceiver extends ModRegReceiver {
     }
 
     @Override
-    public void imGuiReset() {
-        selectedRegister = null;
-    }
+    public void imGuiReset() {}
 }

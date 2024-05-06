@@ -59,20 +59,30 @@ public class PriorityReceiver extends ModRegReceiver {
         ArrayList<ModuleRegister> orderedResults = new ArrayList<>();
 
         while(!queue.isEmpty()) {
-            ModuleRegister process = queue.poll();
+            // PriorityQueue#peek is used here instead of poll (remove), as otherwise the GUI
+            // cannot see the first element on the scheduler
+            ModuleRegister process = queue.peek(); // O(1) time complexity
             switch(process.getState()) {
                 case NEW -> {
                     process.start();
-                    queue.offer(process);
+                    process.startWork();
                     sleepIgnoreException(QUANTUM);
+                    process.stopWork();
+
+                    queue.poll(); // Remove the first element - O(log n) due to sift down operation
+                    queue.offer(process); // Adds back to queue - O(log n) due to sift up operation
                 }
                 case TERMINATED -> {
                     orderedResults.add(process);
+                    queue.poll(); // Remove the first element - O(log n) due to sift down operation
                 }
                 default -> {
-                    process.interrupt();
-                    queue.offer(process);
+                    process.startWork();
                     sleepIgnoreException(QUANTUM);
+                    process.stopWork();
+
+                    queue.poll(); // Remove the first element - O(log n) due to sift down operation
+                    queue.offer(process); // Adds back to queue - O(log n) due to sift up operation
                 }
             }
         }
@@ -81,8 +91,6 @@ public class PriorityReceiver extends ModRegReceiver {
     }
 
     // Gui code
-    private ModuleRegister selectedRegister;
-
     @Override
     public void imGuiDraw() {
         ImGui.begin("Priority");
@@ -97,34 +105,12 @@ public class PriorityReceiver extends ModRegReceiver {
                 for(ModuleRegister register : copy) {
                     ImGui.tableNextColumn();
 
-                    if(selectedRegister != null) {
-                        // Only make a button for the selected register
-                        if(selectedRegister.equals(register)) {
-                            ImGui.pushStyleColor(ImGuiCol.Button, 0.2f, 0.8f, 0.2f, 1.0f);
-                            if(ImGui.button(register.getName() + " Pri(" + register.getPriority() + ")",
-                                    ImGui.getColumnWidth(),
-                                    0)) {
-                                selectedRegister = null;
-                            }
-                            ImGui.popStyleColor();
-                        } else {
-                            ImGui.text(register.getName() + " Pri(" + register.getPriority() + ")");
-                        }
-                    } else {
-                        // Style the button
-                        ImGui.pushStyleColor(ImGuiCol.ButtonHovered, 1.0f, 0.0f, 0.0f, 1.0f);
-
-                        if(ImGui.button(register.getName() + " Pri(" + register.getPriority() + ")",
-                                ImGui.getColumnWidth(), 0)) {
-                            selectedRegister = register;
-                        }
-                        ImGui.popStyleColor();
-                    }
+                    ImGui.text(register.getName() + " Pri(" + register.getPriority() + ") " +
+                            (register.isExecuting() ? "Executing" : "Runnable"));
 
                     // Display work done
-                    if(register.getState() != Thread.State.NEW &&
-                            register.getState() != Thread.State.TERMINATED) {
-                        ImGui.text(register.workDone() + " / " + register.getTotalWorkToDo());
+                    if(register.getState() != Thread.State.NEW) {
+                        ImGui.text(register.getWorkCompleted() + " / " + register.getWork());
                     }
 
                     // Slider to configure work done amount
@@ -169,6 +155,5 @@ public class PriorityReceiver extends ModRegReceiver {
 
     @Override
     public void imGuiReset() {
-        selectedRegister = null;
     }
 }

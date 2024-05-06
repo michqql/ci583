@@ -19,6 +19,11 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertEquals;
 
 public class TestModRegistrations {
+
+    /**
+     * Also check out {@link ci583.gui.Window} for a visualisation of the schedulers
+     */
+
     @Before
     public void setUp() {
     }
@@ -68,7 +73,7 @@ public class TestModRegistrations {
         r.enqueue(new ModuleRegister("P4", 200));
 
         Stream<String> names = r.startRegistration().stream().map(ModuleRegister::getName);
-        assertEquals("[P2, P4, P1, P3]", Arrays.toString(names.toArray()));
+        assertEquals("[P4, P2, P3, P1]", Arrays.toString(names.toArray()));
     }
 
     @Test
@@ -126,6 +131,20 @@ public class TestModRegistrations {
 
         Stream<String> names = r.startRegistration().stream().map(ModuleRegister::getName);
         assertEquals("[P6, P1, P4, P2, P3, P5]", Arrays.toString(names.toArray()));
+    }
+
+    @Test
+    public void testShortestJobFirstReceiver2() {
+        ModRegReceiver r = new ShortestJobFirstReceiver(100);
+        r.enqueue(new ModuleRegister("P1", 3000));
+        r.enqueue(new ModuleRegister("P2", 3000));
+        r.enqueue(new ModuleRegister("P3", 3000));
+        r.enqueue(new ModuleRegister("P4", 3000));
+        r.enqueue(new ModuleRegister("P5", 3000));
+        r.enqueue(new ModuleRegister("P6", 3000));
+
+        Stream<String> names = r.startRegistration().stream().map(ModuleRegister::getName);
+        assertEquals("[P1, P2, P3, P4, P5, P6]", Arrays.toString(names.toArray()));
     }
 
     @Test

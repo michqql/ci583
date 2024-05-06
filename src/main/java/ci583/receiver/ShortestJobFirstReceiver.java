@@ -28,21 +28,30 @@ public class ShortestJobFirstReceiver extends ModRegReceiver {
         List<ModuleRegister> results = new ArrayList<>();
 
         while(jobs.size() > 0) {
-            ModuleRegister process = jobs.pollFirst();
+            ModuleRegister process = jobs.first(); // Time complexity is only as great as the
+            // height of the tree
             assert process != null; // Can't be null as jobs.size() > 0
             switch (process.getState()) {
                 case NEW -> {
                     process.start();
-                    jobs.add(process);
+                    process.startWork();
                     sleepIgnoreException(QUANTUM);
+                    process.stopWork();
+
+                    jobs.pollFirst(); // O(log n)
+                    jobs.add(process); // O(log n)
                 }
                 case TERMINATED -> {
+                    jobs.pollFirst(); // O(log n)
                     results.add(process);
                 }
                 default -> {
-                    process.interrupt();
-                    jobs.add(process);
+                    process.startWork();
                     sleepIgnoreException(QUANTUM);
+                    process.stopWork();
+
+                    jobs.pollFirst(); // O(log n)
+                    jobs.add(process); // O(log n)
                 }
             }
         }
@@ -51,8 +60,6 @@ public class ShortestJobFirstReceiver extends ModRegReceiver {
     }
 
     // Gui code
-    private ModuleRegister selectedRegister;
-
     @Override
     public void imGuiDraw() {
         ImGui.begin("Shortest Job First");
@@ -67,34 +74,20 @@ public class ShortestJobFirstReceiver extends ModRegReceiver {
                 for(ModuleRegister register : copy) {
                     ImGui.tableNextColumn();
 
-                    if(selectedRegister != null) {
-                        // Only make a button for the selected register
-                        if(selectedRegister.equals(register)) {
-                            ImGui.pushStyleColor(ImGuiCol.Button, 0.2f, 0.8f, 0.2f, 1.0f);
-                            if(ImGui.button(register.getName() + ", " + register.getRemainingWorkToDo(),
-                                    ImGui.getColumnWidth(),
-                                    0)) {
-                                selectedRegister = null;
-                            }
-                            ImGui.popStyleColor();
-                        } else {
-                            ImGui.text(register.getName() + ", " + register.getRemainingWorkToDo());
-                        }
-                    } else {
-                        // Style the button
-                        ImGui.pushStyleColor(ImGuiCol.ButtonHovered, 1.0f, 0.0f, 0.0f, 1.0f);
-
-                        if(ImGui.button(register.getName() + ", " + register.getRemainingWorkToDo(),
-                                ImGui.getColumnWidth(), 0)) {
-                            selectedRegister = register;
-                        }
-                        ImGui.popStyleColor();
-                    }
+                    ImGui.text(register.getName() + " - " +
+                                    (register.isExecuting() ? "Executing" : "Runnable"));
+                    ImGui.text(register.getRemainingWorkToDo() + "ms remaining");
 
                     // Display work done
-                    if(register.getState() != Thread.State.NEW &&
-                            register.getState() != Thread.State.TERMINATED) {
-                        ImGui.text(register.workDone() + " / " + register.getTotalWorkToDo());
+                    if(register.getState() != Thread.State.NEW) {
+                        ImGui.text(register.getWorkCompleted() + " / " + register.getWork());
+                    } else {
+                        // Thread state is NEW
+                        // Slider to configure work done amount
+                        int[] wrapper = {(int) register.getTotalWorkToDo()};
+                        if(ImGui.sliderInt("##work" + register.getName(), wrapper, 1000, 60000)) {
+                            register.setWorkToDo(wrapper[0]);
+                        }
                     }
                 }
             }
@@ -112,6 +105,5 @@ public class ShortestJobFirstReceiver extends ModRegReceiver {
 
     @Override
     public void imGuiReset() {
-        selectedRegister = null;
     }
 }

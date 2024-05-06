@@ -68,29 +68,41 @@ public class MultiLevelFeedbackQueueReceiver extends ModRegReceiver {
 
         while (!(young.isEmpty() && old.isEmpty())) {
             ModuleRegister process;
-            ArrayList<ModuleRegister> returningQueue;
+            ArrayList<ModuleRegister> removingQueue, returningQueue;
 
             if (young.isEmpty()) {
                 // Take from start of old,
                 // which shouldn't be empty if this loop is running
-                process = old.remove(0);
+                removingQueue = old;
                 returningQueue = young;
             } else {
-                process = young.remove(0);
+                // Take from young, which can't be empty here
+                removingQueue = young;
                 returningQueue = old;
             }
 
+            process = removingQueue.get(0); // O(1) to get any element due to array backing
             switch (process.getState()) {
                 case NEW -> {
                     process.start();
-                    returningQueue.add(process);
+                    process.startWork();
                     sleepIgnoreException(QUANTUM);
+                    process.stopWork();
+
+                    removingQueue.remove(0); // O(n) to shift all greater elements
+                    returningQueue.add(process); // Amortised O(1) time
                 }
-                case TERMINATED -> results.add(process);
+                case TERMINATED -> {
+                    results.add(process);
+                    removingQueue.remove(0); // O(n) to shift all greater elements
+                }
                 default -> {
-                    process.interrupt();
-                    returningQueue.add(process);
+                    process.startWork();
                     sleepIgnoreException(QUANTUM);
+                    process.stopWork();
+
+                    removingQueue.remove(0); // O(n) to shift all greater elements
+                    returningQueue.add(process); // Amortised O(1) time
                 }
             }
         }
@@ -99,8 +111,6 @@ public class MultiLevelFeedbackQueueReceiver extends ModRegReceiver {
     }
 
     // Gui code
-    private ModuleRegister selectedRegister;
-
     @Override
     public void imGuiDraw() {
         ImGui.begin("Multi-level feedback queue (young & old)");
@@ -117,31 +127,12 @@ public class MultiLevelFeedbackQueueReceiver extends ModRegReceiver {
                 for(ModuleRegister register : youngCopy) {
                     ImGui.tableNextColumn();
 
-                    if(selectedRegister != null) {
-                        // Only make a button for the selected register
-                        if(selectedRegister.equals(register)) {
-                            ImGui.pushStyleColor(ImGuiCol.Button, 0.2f, 0.8f, 0.2f, 1.0f);
-                            if(ImGui.button(register.getName(), ImGui.getColumnWidth(), 0)) {
-                                selectedRegister = null;
-                            }
-                            ImGui.popStyleColor();
-                        } else {
-                            ImGui.text(register.getName());
-                        }
-                    } else {
-                        // Style the button
-                        ImGui.pushStyleColor(ImGuiCol.ButtonHovered, 1.0f, 0.0f, 0.0f, 1.0f);
-
-                        if(ImGui.button(register.getName(), ImGui.getColumnWidth(), 0)) {
-                            selectedRegister = register;
-                        }
-                        ImGui.popStyleColor();
-                    }
+                    ImGui.text(register.getName() + " - " +
+                            (register.isExecuting() ? "Executing" : "Runnable"));
 
                     // Display work done
-                    if(register.getState() != Thread.State.NEW &&
-                            register.getState() != Thread.State.TERMINATED) {
-                        ImGui.text(register.workDone() + " / " + register.getTotalWorkToDo());
+                    if(register.getState() != Thread.State.NEW) {
+                        ImGui.text(register.getWorkCompleted() + " / " + register.getWork());
                     }
 
                     // Slider to configure work done amount
@@ -169,31 +160,12 @@ public class MultiLevelFeedbackQueueReceiver extends ModRegReceiver {
                 for(ModuleRegister register : oldCopy) {
                     ImGui.tableNextColumn();
 
-                    if(selectedRegister != null) {
-                        // Only make a button for the selected register
-                        if(selectedRegister.equals(register)) {
-                            ImGui.pushStyleColor(ImGuiCol.Button, 0.2f, 0.8f, 0.2f, 1.0f);
-                            if(ImGui.button(register.getName(), ImGui.getColumnWidth(), 0)) {
-                                selectedRegister = null;
-                            }
-                            ImGui.popStyleColor();
-                        } else {
-                            ImGui.text(register.getName());
-                        }
-                    } else {
-                        // Style the button
-                        ImGui.pushStyleColor(ImGuiCol.ButtonHovered, 1.0f, 0.0f, 0.0f, 1.0f);
-
-                        if(ImGui.button(register.getName(), ImGui.getColumnWidth(), 0)) {
-                            selectedRegister = register;
-                        }
-                        ImGui.popStyleColor();
-                    }
+                    ImGui.text(register.getName() + " - " +
+                            (register.isExecuting() ? "Executing" : "Runnable"));
 
                     // Display work done
-                    if(register.getState() != Thread.State.NEW &&
-                            register.getState() != Thread.State.TERMINATED) {
-                        ImGui.text(register.workDone() + " / " + register.getTotalWorkToDo());
+                    if(register.getState() != Thread.State.NEW) {
+                        ImGui.text(register.getWorkCompleted() + " / " + register.getWork());
                     }
 
                     // Slider to configure work done amount
@@ -214,6 +186,5 @@ public class MultiLevelFeedbackQueueReceiver extends ModRegReceiver {
 
     @Override
     public void imGuiReset() {
-        selectedRegister = null;
     }
 }

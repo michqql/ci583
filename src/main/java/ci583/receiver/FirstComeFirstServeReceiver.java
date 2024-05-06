@@ -27,20 +27,23 @@ public class FirstComeFirstServeReceiver extends ModRegReceiver {
         List<ModuleRegister> results = new ArrayList<>();
 
         while(list.size() > 0) {
-            ModuleRegister process = list.get(0);
+            ModuleRegister process = list.get(0); // O(1) time complexity
             assert process != null; // Can't be null as jobs.size() > 0
             switch (process.getState()) {
                 case NEW -> {
                     process.start();
+                    process.startWork();
                     sleepIgnoreException(QUANTUM);
+                    process.stopWork();
                 }
                 case TERMINATED -> {
-                    list.remove(0);
+                    list.remove(0); // O(n) time complexity as greater elements shifted down
                     results.add(process);
                 }
                 default -> {
-                    process.interrupt();
+                    process.startWork();
                     sleepIgnoreException(QUANTUM);
+                    process.stopWork();
                 }
             }
         }
@@ -49,11 +52,9 @@ public class FirstComeFirstServeReceiver extends ModRegReceiver {
     }
 
     // Gui code
-    private ModuleRegister selectedRegister;
-
     @Override
     public void imGuiDraw() {
-        ImGui.begin("First Come First Server");
+        ImGui.begin("First Come First Serve");
 
         if (ImGui.beginTable("fcfs", list.size() + 2, ImGuiTableFlags.Borders)) {
             ImGui.tableNextRow();
@@ -65,31 +66,11 @@ public class FirstComeFirstServeReceiver extends ModRegReceiver {
                 for(ModuleRegister register : copy) {
                     ImGui.tableNextColumn();
 
-                    if(selectedRegister != null) {
-                        // Only make a button for the selected register
-                        if(selectedRegister.equals(register)) {
-                            ImGui.pushStyleColor(ImGuiCol.Button, 0.2f, 0.8f, 0.2f, 1.0f);
-                            if(ImGui.button(register.getName(), ImGui.getColumnWidth(), 0)) {
-                                selectedRegister = null;
-                            }
-                            ImGui.popStyleColor();
-                        } else {
-                            ImGui.text(register.getName());
-                        }
-                    } else {
-                        // Style the button
-                        ImGui.pushStyleColor(ImGuiCol.ButtonHovered, 1.0f, 0.0f, 0.0f, 1.0f);
-
-                        if(ImGui.button(register.getName(), ImGui.getColumnWidth(), 0)) {
-                            selectedRegister = register;
-                        }
-                        ImGui.popStyleColor();
-                    }
+                    ImGui.text(register.getName());
 
                     // Display work done
-                    if(register.getState() != Thread.State.NEW &&
-                            register.getState() != Thread.State.TERMINATED) {
-                        ImGui.text(register.workDone() + " / " + register.getTotalWorkToDo());
+                    if(register.getState() != Thread.State.NEW) {
+                        ImGui.text(register.getWorkCompleted() + " / " + register.getWork());
                     }
 
                     // Slider to configure work done amount
@@ -115,6 +96,5 @@ public class FirstComeFirstServeReceiver extends ModRegReceiver {
 
     @Override
     public void imGuiReset() {
-        selectedRegister = null;
     }
 }

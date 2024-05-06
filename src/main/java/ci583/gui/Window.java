@@ -4,9 +4,11 @@ import ci583.receiver.*;
 import imgui.ImFont;
 import imgui.ImGui;
 import imgui.ImGuiIO;
+import imgui.ImGuiStyle;
 import imgui.app.Application;
 import imgui.app.Configuration;
 import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiStyleVar;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -17,15 +19,15 @@ public class Window extends Application {
     private static final String WINDOW_TITLE = "Module Register";
     private static ImFont JETBRAINS_FONT;
 
+    // Default schedulers
     private final RoundRobinReceiver roundRobinReceiver = new RoundRobinReceiver(100);
     private final PriorityReceiver priorityReceiver = new PriorityReceiver(100);
-    private final MultiLevelFeedbackQueueReceiver multiLevelFeedbackQueueReceiver =
-            new MultiLevelFeedbackQueueReceiver(100);
-
+    private final MultiLevelFeedbackQueueReceiver multiLevelFeedbackQueueReceiver = new MultiLevelFeedbackQueueReceiver(100);
+    // My schedulers
     private final ShortestJobFirstReceiver shortestJobFirstReceiver = new ShortestJobFirstReceiver(100);
-
     private final FirstComeFirstServeReceiver firstComeFirstServeReceiver = new FirstComeFirstServeReceiver(100);
 
+    // Linked hash map containing all the selectable types of schedulers
     private final LinkedHashMap<String, ModRegReceiver> selectMap = new LinkedHashMap<>(){{
         put("Round Robin", roundRobinReceiver);
         put("Priority Queue", priorityReceiver);
@@ -36,8 +38,7 @@ public class Window extends Application {
     }};
 
     // The running schedulers
-    private final HashMap<Class<? extends ModRegReceiver>, ModRegReceiver> selectedReceivers =
-            new HashMap<>();
+    private final HashMap<Class<? extends ModRegReceiver>, ModRegReceiver> selectedReceivers = new HashMap<>();
     private boolean running;
 
     @Override
@@ -61,10 +62,26 @@ public class Window extends Application {
             // Allow user to select a scheduler
             if(ImGui.beginMenu("Select Scheduler")) {
                 selectMap.forEach((name, modRegReceiver) -> {
-                    if(ImGui.menuItem(name)) {
+                    boolean enabled = selectedReceivers.containsKey(modRegReceiver.getClass());
+                    if(ImGui.menuItem(name, null, enabled)) {
                         toggleReceiver(modRegReceiver);
                     }
                 });
+
+                ImGui.separator();
+
+                if(ImGui.menuItem("Enable all")) {
+                    selectMap.forEach((name, modRegReceiver) -> {
+                        selectedReceivers.put(modRegReceiver.getClass(), modRegReceiver);
+                    });
+                }
+
+                if(ImGui.menuItem("Disable all")) {
+                    selectMap.forEach((name, modRegReceiver) -> {
+                        selectedReceivers.remove(modRegReceiver.getClass());
+                    });
+                }
+
                 ImGui.endMenu();
             }
 

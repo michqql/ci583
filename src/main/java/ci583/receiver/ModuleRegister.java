@@ -6,12 +6,15 @@ package ci583.receiver;
  */
 public class ModuleRegister extends Thread {
 
-    /** The amount of 'work' this process has to do, in milliseconds. */
+    // The amount of 'work' this process has to do, in milliseconds
     private long work;
-    /** The time at which this process was started, in milliseconds. */
-    private long timeStarted;
-    /** Contains the name and other details of this process. */
-    private String statusDescription;
+    // Whether this process is currently being given CPU computation time
+    private boolean executing;
+    // The time in ms at which work started (used for calculating the amount of processing
+    // completed during the current CPU allocation)
+    private long workStartTime;
+    // The total amount of work in ms which has been completed
+    private long workCompleted;
 
     /**
      * Constructs a new Process with the given name and amount of work to do.
@@ -32,21 +35,62 @@ public class ModuleRegister extends Thread {
         this.setName(pid);
         this.work = work;
         setPriority(p.getVal());
-        statusDescription = String.format("[%s %d] INCOMPLETE %d", pid, getPriority(), work);
     }
 
     /**
-     * The run method sleeps repeatedly until the 'work' is done.
+     * <strong>The run method sleeps repeatedly until the 'work' is done.</strong>
+     * <p>
+     * Changed solution to use time that only increases during given CPU execution
+     * rather than {@link System#currentTimeMillis()} as this constantly increases
+     * even if the process isn't being given CPU time.
+     * </p>
      */
     @SuppressWarnings("BusyWait")
     public void run() {
-        timeStarted = System.currentTimeMillis();
-        while(workDone() < work) {
+        while(workCompleted < work) {
             try {
-                Thread.sleep(10);
+                // Without this sleep call (or some other call such as sys out) it seems the
+                // compiler removes this while loop during optimisation
+                Thread.sleep(1);
             } catch (InterruptedException ignored) {}
         }
-        updateStatus();
+    }
+
+    /**
+     * Indicates that this process has just been given CPU time
+     */
+    public void startWork() {
+        executing = true;
+        workStartTime = System.currentTimeMillis();
+    }
+
+    /**
+     * Indicates that this process is no longer receiving CPU time
+     */
+    public void stopWork() {
+        executing = false;
+        workCompleted += (System.currentTimeMillis() - workStartTime);
+    }
+
+    /**
+     * @return true if this process is currently being given CPU time
+     */
+    public boolean isExecuting() {
+        return executing;
+    }
+
+    /**
+     * @return amount of work that has been completed
+     */
+    public long getWorkCompleted() {
+        return workCompleted;
+    }
+
+    /**
+     * @return amount of work required for this process to finish
+     */
+    public long getWork() {
+        return work;
     }
 
     /**
@@ -54,23 +98,18 @@ public class ModuleRegister extends Thread {
      * Sets a string describing this process and how long it took to complete.
      */
     private void updateStatus() {
-        statusDescription = String.format("[%s %d] COMPLETE: %d/%d", getName(), getPriority(),
-                work, workDone());
+
     }
 
     /**
      * @return The length of time, in milliseconds, that this process has been working.
      */
     public long workDone() {
-        return System.currentTimeMillis() - timeStarted;
+        return 0;
     }
 
     public long getRemainingWorkToDo() {
-        if(timeStarted > 0) {
-            return timeStarted + work - System.currentTimeMillis();
-        } else {
-            return work; // If not started, return the work amount
-        }
+        return work - workCompleted;
     }
 
     public long getTotalWorkToDo() {
@@ -82,11 +121,10 @@ public class ModuleRegister extends Thread {
     }
 
     /**
-     * Returns the contents of `status'.
-     * @return
+     * @return the contents of `status'.
      */
     public String toString() {
-        return statusDescription;
+        return getName();
     }
 
     /** An enum containing three priority values, LOW, MEDIUM and HIGH. */
